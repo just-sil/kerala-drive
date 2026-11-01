@@ -4,9 +4,12 @@
 #hud{position:fixed;left:18px;top:16px;color:#f5f7f2;background:#172629df;border:1px solid #ffffff35;border-radius:12px;padding:12px 16px}
 #hud b{font-size:13px;letter-spacing:.14em}#hud small{display:block;margin-top:5px;color:#c5d2cc;font-size:11px}#help{position:fixed;right:18px;bottom:16px;color:#edf3ec;background:#172629d9;border-radius:10px;padding:10px 13px;font-size:11px}
 </style></head><body><div id="view"></div><div id="hud"><b>KERALA DRIVE · WORLD BLOCKOUT</b><small>COAST • FARMLAND • GRASSLAND • WESTERN GHATS</small></div><div id="help">DRAG · ORBIT &nbsp; SCROLL · ZOOM &nbsp; RIGHT-DRAG · PAN</div>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
 <script type="module">
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
-import {OrbitControls} from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 const scene=new THREE.Scene();scene.background=new THREE.Color(0xa9cbd0);scene.fog=new THREE.Fog(0xa9cbd0,520,1150);
 const camera=new THREE.PerspectiveCamera(48,innerWidth/innerHeight,.1,1800);camera.position.set(520,410,570);
 const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.8));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;document.querySelector('#view').appendChild(renderer.domElement);
