@@ -11,6 +11,7 @@
 .pill{background:#101820c9;border:1px solid #ffffff35;border-radius:12px;padding:9px 13px;backdrop-filter:blur(8px)}
 #brand{position:absolute;top:18px;left:18px;font-weight:900;letter-spacing:.16em;font-size:13px;padding:11px 16px}
 #location{position:absolute;top:18px;right:18px;text-align:right;font-size:12px;line-height:1.6;padding:11px 16px}
+#viewbtn{font:700 11px Inter,system-ui,sans-serif;letter-spacing:.06em}
 #speedbox{position:absolute;right:22px;bottom:22px;width:124px;height:124px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 25%,#263d43ee,#091216f5);border:2px solid #b9d6c9;box-shadow:0 8px 30px #0008,inset 0 0 0 5px #ffffff12}
 #speed{font-size:34px;font-weight:800;line-height:1}#unit{font-size:10px;letter-spacing:.15em;text-align:center;opacity:.8}
 #gear{position:absolute;left:18px;bottom:18px;font-size:13px;line-height:1.6}
@@ -30,6 +31,7 @@ button{background:#e5f0e8;color:#14221c;border:0;border-radius:11px;padding:13px
 <div id="hud">
  <div id="brand" class="pill">KERALA DRIVE <span style="color:#a7d9b4">1.3</span></div>
  <div id="location" class="pill">MALAPPURAM • TIRUR INSPIRED<br><span id="roadname">TIRUR TOWN ROAD</span></div>
+ <button id="viewbtn" class="pill" style="position:absolute;top:82px;right:18px;pointer-events:auto;color:white;background:#101820d9;border:1px solid #ffffff45;padding:9px 13px">THIRD PERSON · V</button>
  <div id="gear" class="pill">GEAR <b id="gearval">D</b><br>ENGINE <b>RUNNING</b><br>TRAFFIC <b id="trafficcount">0</b></div>
  <div id="hint" class="pill">WASD / ARROWS TO DRIVE · SPACE BRAKE · R RESET</div>
  <div id="speedbox"><div><div id="speed">0</div><div id="unit">KM/H</div></div></div>
@@ -135,40 +137,8 @@ const connector=[{x:-68,z:-54},{x:-72,z:-29},{x:-66,z:-5},{x:-50,z:16},{x:-29,z:
 const northLink=[{x:20,z:185},{x:43,z:192},{x:66,z:207},{x:91,z:224},{x:118,z:236}];
 const southLink=[{x:-16,z:-185},{x:-40,z:-192},{x:-64,z:-208},{x:-91,z:-218},{x:-120,z:-224}];
 [ [main,8],[west,7],[east,7],[market,7],[connector,6],[northLink,6.5],[southLink,6.5] ].forEach(([p,w])=>{roadStrip(p,w);dashed(p,w)});
-// Real junction aprons: shared asphalt polygons bridge the road ribbons.
-// Each junction is a plus-shaped paved union, not a circular decal. The two
-// axes follow the actual road directions so branch mouths meet the carriageway.
-function addJunction(cx,cz,axisA,axisB,halfA=4.4,halfB=3.6,armA=8.2,armB=8.0){
- const norm=v=>{const l=Math.hypot(v.x,v.z)||1;return{x:v.x/l,z:v.z/l}};
- const u=norm(axisA),v=norm(axisB);
- const p=(a,b)=>({x:cx+u.x*a+v.x*b,z:cz+u.z*a+v.z*b});
- const outline=[
-  p(-armA,-halfB),p(-halfA,-halfB),p(-halfA,-armB),p(halfA,-armB),
-  p(halfA,-halfB),p(armA,-halfB),p(armA,halfB),p(halfA,halfB),
-  p(halfA,armB),p(-halfA,armB),p(-halfA,halfB),p(-armA,halfB)
- ];
- const shape=new THREE.Shape();
- // ShapeGeometry starts in XY space. After rotation -90 degrees around X,
- // local Y maps to negative world Z, so negate Z before creating the shape.
- shape.moveTo(outline[0].x,-outline[0].z);
- for(let i=1;i<outline.length;i++)shape.lineTo(outline[i].x,-outline[i].z);
- shape.closePath();
- const geo=new THREE.ShapeGeometry(shape,2);geo.rotateX(-Math.PI/2);
- const mesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({
-  color:0x555b5c,map:asphaltTex,roughness:.96,side:THREE.DoubleSide
- }));
- mesh.position.y=.034;mesh.receiveShadow=true;scene.add(mesh);
-}
-// Main-road junctions: market, west residential, east residential, connector,
-// and two long-distance village links.
-addJunction(-4,-48,{x:1,z:0},{x:0,z:1},4.4,3.8,8.5,8.5);
-addJunction(0,-15,{x:1,z:0},{x:0,z:1},4.4,3.5,8.5,8.0);
-addJunction(8,42,{x:1,z:0},{x:0,z:1},4.4,3.5,8.5,8.0);
-addJunction(-68,-54,{x:1,z:0},{x:0,z:1},3.8,3.2,8.0,8.0);
-addJunction(20,185,{x:1,z:.22},{x:1,z:.3},4.4,3.4,8.0,8.0);
-addJunction(-16,-185,{x:1,z:.18},{x:1,z:.35},4.4,3.4,8.0,8.0);
-
-
+// Intersections are formed by overlapping road ribbons at shared centreline nodes.
+// No separate apron decals or plaza meshes are placed over the carriageways.
 
 // Explicit road graph: junction nodes and connected road segments.
 // Traffic routing can use these stable node/edge identifiers in the next phase.
@@ -188,6 +158,30 @@ const roadGraph={
   ["south_village","tirur_residential","main+southLink"]
  ]
 };
+
+
+// PLAYABLE-AREA PERIMETER: continuous compound wall enclosing the road network.
+const boundaryWallMat=mat(0xb9b5a7,.94),boundaryCapMat=mat(0x77766e,.9);
+function boundaryWall(x1,z1,x2,z2,height=2.35){
+ const dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz);
+ const wall=new THREE.Mesh(new THREE.BoxGeometry(.42,height,len),boundaryWallMat);
+ wall.position.set((x1+x2)/2,height/2-.12,(z1+z2)/2);
+ wall.rotation.y=Math.atan2(dx,dz);wall.castShadow=true;wall.receiveShadow=true;scene.add(wall);
+ const cap=new THREE.Mesh(new THREE.BoxGeometry(.52,.12,len+.06),boundaryCapMat);
+ cap.position.set((x1+x2)/2,height-.12,(z1+z2)/2);
+ cap.rotation.y=Math.atan2(dx,dz);cap.castShadow=true;scene.add(cap);
+}
+// Four connected sides. A wide opening on the south side is the main entry/exit.
+const BOUND={minX:-185,maxX:185,minZ:-325,maxZ:325};
+boundaryWall(BOUND.minX,BOUND.minZ,BOUND.maxX,BOUND.minZ);
+boundaryWall(BOUND.maxX,BOUND.minZ,BOUND.maxX,BOUND.maxZ);
+boundaryWall(BOUND.maxX,BOUND.maxZ,BOUND.minX,BOUND.maxZ);
+boundaryWall(BOUND.minX,BOUND.maxZ,BOUND.minX,BOUND.minZ);
+// Reinforced corner piers make the boundary readable from a distance.
+for(const [x,z] of [[-185,-325],[185,-325],[185,325],[-185,325]]){
+ const pier=new THREE.Mesh(new THREE.BoxGeometry(.72,2.75,.72),boundaryCapMat);
+ pier.position.set(x,1.255,z);pier.castShadow=true;scene.add(pier);
+}
 
 // Roadside footpaths, drains, plot walls and kerbs.
 function pathSegment(a,b,w=1.4){const dx=b.x-a.x,dz=b.z-a.z,l=Math.hypot(dx,dz),o=new THREE.Mesh(new THREE.BoxGeometry(w,.12,l),concrete);o.position.set((a.x+b.x)/2,.06,(a.z+b.z)/2);o.rotation.y=Math.atan2(dx,dz);scene.add(o)}
@@ -340,7 +334,24 @@ function tree(x,z,s=1){const g=new THREE.Group();g.position.set(x,0,z);scene.add
 [[-17,-64],[-42,-42],[-18,40],[17,61],[61,12],[92,49],[-110,-27],[12,-128]].forEach(p=>tree(...p,1));
 // Electric poles and overhead wires along the streets.
 function pole(x,z){cylinder(scene,x,4,z,.12,.16,8,mat(0x696b65));box(scene,x,7.7,z,2.2,.12,.12,dark);for(let q of [-.8,.8])cylinder(scene,x+q,8,z,.045,.045,.6,dark)}
-const poles=[[-19,-90],[-11,-30],[15,58],[22,96],[-45,-55],[-76,-51],[42,45],[82,60]];poles.forEach(p=>pole(...p));
+const allRoads=[main,west,east,market,connector,northLink,southLink];
+function roadsidePolePosition(x,z){
+ let best={d:Infinity,x,z,nx:1,nz:0};
+ for(const pts of allRoads)for(let i=0;i<pts.length-1;i++){
+  const a=pts[i],b=pts[i+1],dx=b.x-a.x,dz=b.z-a.z,l2=dx*dx+dz*dz||1;
+  const t=Math.max(0,Math.min(1,((x-a.x)*dx+(z-a.z)*dz)/l2));
+  const px=a.x+dx*t,pz=a.z+dz*t,d=Math.hypot(x-px,z-pz);
+  if(d<best.d){const l=Math.sqrt(l2);let nx=-dz/l,nz=dx/l;
+   if((x-px)*nx+(z-pz)*nz<0){nx=-nx;nz=-nz}
+   best={d,x:px,z:pz,nx,nz};
+  }
+ }
+ const offset=Math.max(10.5,best.d);
+ return {x:best.x+best.nx*offset,z:best.z+best.nz*offset};
+}
+const poleSeeds=[[-19,-90],[-11,-30],[15,58],[22,96],[-45,-55],[-76,-51],[42,45],[82,60]];
+const poles=poleSeeds.map(([x,z])=>{const p=roadsidePolePosition(x,z);return[p.x,p.z]});
+poles.forEach(p=>pole(...p));
 function wire(a,b){const curve=new THREE.CatmullRomCurve3([new THREE.Vector3(a[0],8,a[1]),new THREE.Vector3((a[0]+b[0])/2,7.1,(a[1]+b[1])/2),new THREE.Vector3(b[0],8,b[1])]);scene.add(new THREE.Mesh(new THREE.TubeGeometry(curve,16,.025,5,false),dark))}
 for(let i=0;i<poles.length-1;i++)wire(poles[i],poles[i+1]);
 // Road furniture: Malayalam-inspired sign panels, bus stop, tea shop board, drains and zebra crossings.
@@ -508,9 +519,54 @@ for(let i=0;i<2;i++){
  const pedal=box(cockpit,-.63+i*.17,-.91,-1.28,.09,.025,.075,metal);
  pedal.rotation.x=-.20;
 }
-// camera is the driver's eye, cockpit parented to it
+// Player WagonR proxy model for the exterior camera.
+const playerCar=new THREE.Group();scene.add(playerCar);
+const pBody=mat(0xb8c2bd,.48,.12),pGlass=new THREE.MeshStandardMaterial({color:0x29434a,roughness:.22,metalness:.18}),pTyre=mat(0x151819,.95),pLamp=mat(0xffe7b0,.35),pTail=mat(0xb51f1b,.4);
+box(playerCar,0,.66,0,1.72,.72,3.12,pBody);
+box(playerCar,0,1.24,-.18,1.48,.68,1.72,pBody);
+box(playerCar,0,1.24,.72,1.42,.56,.045,pGlass);
+box(playerCar,0,1.24,-1.06,1.42,.56,.045,pGlass);
+for(const side of [-1,1]){
+ box(playerCar,side*.75,1.22,-.16,.035,.48,1.52,pGlass);
+ for(const z of [-1.02,1.03]){
+  const tyre=new THREE.Mesh(new THREE.CylinderGeometry(.34,.34,.18,16),pTyre);
+  tyre.rotation.z=Math.PI/2;tyre.position.set(side*.87,.38,z);playerCar.add(tyre);
+ }
+ box(playerCar,side*.79,.78,1.53,.16,.22,.08,pLamp);
+ box(playerCar,side*.79,.78,-1.58,.16,.22,.08,pTail);
+}
+box(playerCar,0,.34,1.58,1.15,.12,.08,trimMat);
+box(playerCar,0,.34,-1.58,1.15,.12,.08,trimMat);
+
+
+// Front/rear details and door glazing on the exterior player hatchback.
+box(playerCar,0,.62,1.585,1.20,.20,.045,pBody);
+box(playerCar,0,.73,1.615,.72,.10,.025,trimMat);
+for(const side of [-1,1]){
+ box(playerCar,side*.53,.84,1.635,.22,.13,.025,pLamp);
+ box(playerCar,side*.53,.84,-1.635,.22,.13,.025,pTail);
+ box(playerCar,side*.755,1.22,.62,.025,.42,.62,pGlass);
+ box(playerCar,side*.755,1.22,-.55,.025,.42,.62,pGlass);
+ box(playerCar,side*.77,1.22,.02,.045,.045,.10,trimMat);
+}
+
+// First-person cockpit stays attached to the camera; third-person hides it.
 camera.position.set(0,1.48,0);camera.rotation.order='YXZ';camera.add(cockpit);scene.add(camera);
-function updateCamera(){camera.position.set(car.x,1.62,car.z);camera.rotation.y=car.yaw+Math.PI;camera.rotation.x=-.035;wheel.rotation.z=-steer*.48}
+let thirdPerson=false;
+function setView(value){thirdPerson=value;cockpit.visible=!thirdPerson;playerCar.visible=thirdPerson;
+ document.querySelector('#viewbtn').textContent=thirdPerson?'FIRST PERSON · V':'THIRD PERSON · V';updateCamera()}
+function updateCamera(){
+ playerCar.position.set(car.x,0,car.z);playerCar.rotation.y=car.yaw;playerCar.visible=thirdPerson;
+ wheel.rotation.z=-steer*.48;
+ if(thirdPerson){
+  const back=7.0,height=3.15;
+  camera.position.set(car.x-Math.sin(car.yaw)*back,height,car.z-Math.cos(car.yaw)*back);
+  camera.lookAt(car.x,1.05,car.z+Math.cos(car.yaw)*2.0);
+ }else{
+  camera.position.set(car.x,1.62,car.z);
+  camera.rotation.order='YXZ';camera.rotation.y=car.yaw+Math.PI;camera.rotation.x=-.035;camera.rotation.z=0;
+ }
+}
 function reset(){car.x=-13;car.z=-120;car.yaw=0;car.speed=0;steer=0;updateCamera()}
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
 function frame(){requestAnimationFrame(frame);const dt=Math.min(clock.getDelta(),.04);
@@ -533,7 +589,8 @@ function frame(){requestAnimationFrame(frame);const dt=Math.min(clock.getDelta()
  }renderer.render(scene,camera)}
 const clock=new THREE.Clock();updateCamera();frame();
 document.querySelector('#startbtn').addEventListener('click',()=>{running=true;document.querySelector('#start').style.display='none'});
-addEventListener('keydown',e=>{keys[e.code]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();if(e.code==='KeyR')reset()});
+addEventListener('keydown',e=>{keys[e.code]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();if(e.code==='KeyR')reset();if(e.code==='KeyV'&&!e.repeat)setView(!thirdPerson)});
+document.querySelector('#viewbtn').addEventListener('click',()=>setView(!thirdPerson));
 addEventListener('keyup',e=>keys[e.code]=false);
 document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key;b.addEventListener('pointerdown',e=>{e.preventDefault();keys[k]=true});['pointerup','pointercancel','pointerleave'].forEach(ev=>b.addEventListener(ev,()=>keys[k]=false))});
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
