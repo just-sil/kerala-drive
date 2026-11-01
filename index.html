@@ -1,23 +1,27 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Kerala Drive — World Blockout</title>
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kerala Drive — Playable World Prototype</title>
 <style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#a9cbd0;font-family:system-ui,sans-serif}#view{position:fixed;inset:0}canvas{display:block}
-#hud{position:fixed;left:18px;top:16px;color:#f5f7f2;background:#172629df;border:1px solid #ffffff35;border-radius:12px;padding:12px 16px}
-#hud b{font-size:13px;letter-spacing:.14em}#hud small{display:block;margin-top:5px;color:#c5d2cc;font-size:11px}#help{position:fixed;right:18px;bottom:16px;color:#edf3ec;background:#172629d9;border-radius:10px;padding:10px 13px;font-size:11px}
-</style></head><body><div id="view"></div><div id="hud"><b>KERALA DRIVE · WORLD BLOCKOUT</b><small>COAST • FARMLAND • GRASSLAND • WESTERN GHATS</small></div><div id="help">DRAG · ORBIT &nbsp; SCROLL · ZOOM &nbsp; RIGHT-DRAG · PAN</div>
-<script type="importmap">
-{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
-</script>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#9dbdc0;font-family:Inter,system-ui,sans-serif}
+#game{position:fixed;inset:0}canvas{display:block}
+#brand{position:fixed;top:16px;left:18px;padding:11px 15px;border-radius:11px;background:#142629df;color:#f4f6ee;border:1px solid #ffffff35;pointer-events:none}
+#brand b{font-size:12px;letter-spacing:.14em}#brand small{display:block;margin-top:4px;color:#c5d2ca;font-size:10px;letter-spacing:.05em}
+#hud{position:fixed;right:18px;top:16px;background:#142629df;color:#fff;padding:10px 14px;border-radius:11px;font-size:12px;min-width:108px;text-align:right}
+#help{position:fixed;left:18px;bottom:16px;background:#142629df;color:#e8eee8;padding:10px 13px;border-radius:10px;font-size:11px;line-height:1.7}
+</style></head><body>
+<div id="game"></div>
+<div id="brand"><b>KERALA DRIVE</b><small>WORLD PROTOTYPE · TIRUR COAST</small></div>
+<div id="hud"><span id="speed">0</span> km/h<br><small id="gear">READY</small></div>
+<div id="help">W / ↑ ACCELERATE · S / ↓ BRAKE / REVERSE<br>A / D STEER · SPACE HANDBRAKE · R RESET</div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
 <script type="module">
 import * as THREE from 'three';
-import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 
 const scene=new THREE.Scene();
-scene.background=new THREE.Color(0xb8d5d5);
-scene.fog=new THREE.Fog(0xb8d5d5,900,1800);
-
-const camera=new THREE.PerspectiveCamera(48,innerWidth/innerHeight,.1,2500);
-camera.position.set(780,690,850);
-
+scene.background=new THREE.Color(0xa9c9cc);
+scene.fog=new THREE.Fog(0xa9c9cc,420,1050);
+const camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.1,1800);
 const renderer=new THREE.WebGLRenderer({antialias:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));
 renderer.setSize(innerWidth,innerHeight);
@@ -25,136 +29,164 @@ renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=1.0;
-document.querySelector('#view').appendChild(renderer.domElement);
+renderer.toneMappingExposure=1;
+document.querySelector('#game').appendChild(renderer.domElement);
 
-const controls=new OrbitControls(camera,renderer.domElement);
-controls.target.set(0,0,0);
-controls.enableDamping=true;
-controls.dampingFactor=.055;
-controls.maxPolarAngle=Math.PI*.48;
-controls.minDistance=250;
-controls.maxDistance=1600;
-
-scene.add(new THREE.HemisphereLight(0xe8f5f1,0x6b7959,1.8));
-const sun=new THREE.DirectionalLight(0xffefcf,2.1);
-sun.position.set(-300,650,250);
-sun.castShadow=true;
+scene.add(new THREE.HemisphereLight(0xe8f4ec,0x687552,1.75));
+const sun=new THREE.DirectionalLight(0xffedcf,2.2);
+sun.position.set(-220,360,180);sun.castShadow=true;
 sun.shadow.mapSize.set(2048,2048);
-sun.shadow.camera.left=-650;sun.shadow.camera.right=650;
-sun.shadow.camera.top=650;sun.shadow.camera.bottom=-650;
+sun.shadow.camera.left=-420;sun.shadow.camera.right=420;
+sun.shadow.camera.top=420;sun.shadow.camera.bottom=-420;
 scene.add(sun);
 
-const material=(color,roughness=.95)=>new THREE.MeshStandardMaterial({color,roughness});
-const grass=material(0x789d59),seaMat=material(0x287f98,.38),shallowMat=material(0x62adb0,.55);
-const sand=material(0xd9c79a),paddy1=material(0x9eaa60),paddy2=material(0x82964d);
-const bund=material(0xb5a77d),wallMat=material(0xc8c2ad),wallTop=material(0x817e72);
-const mountainMats=[material(0x667e69),material(0x748a70),material(0x596f60),material(0x829178)];
+const mat=(c,r=.92)=>new THREE.MeshStandardMaterial({color:c,roughness:r});
+const grassMat=mat(0x789b58),grassAlt=mat(0x83a563),sandMat=mat(0xd9c79a),
+ seaMat=new THREE.MeshStandardMaterial({color:0x237d91,roughness:.34,metalness:.05}),
+ shallowMat=mat(0x55a4a5,.55),fieldA=mat(0x9aaa5e),fieldB=mat(0x87994c),
+ bundMat=mat(0xb4a57b),wallMat=mat(0xc5c0ad),wallCap=mat(0x858176),
+ trunkMat=mat(0x795333),leafMat=mat(0x2d7040);
 
-// Main land: one continuous, flat terrain slab.
-const land=new THREE.Mesh(new THREE.PlaneGeometry(760,640),grass);
-land.rotation.x=-Math.PI/2;
-land.position.set(40,-1,0);
-land.receiveShadow=true;
-scene.add(land);
-
-// Arabian Sea to the west, with distinct shallow water and a narrow sandy shore.
-function flatRect(w,d,x,z,y,mat){
- const m=new THREE.Mesh(new THREE.PlaneGeometry(w,d),mat);
- m.rotation.x=-Math.PI/2;m.position.set(x,y,z);m.receiveShadow=true;scene.add(m);return m;
+// World extents in metres/game units. Coast is on the west (negative X).
+const B={minX:-360,maxX:360,minZ:-300,maxZ:300};
+function plane(w,d,x,z,y,material){
+ const mesh=new THREE.Mesh(new THREE.PlaneGeometry(w,d),material);
+ mesh.rotation.x=-Math.PI/2;mesh.position.set(x,y,z);mesh.receiveShadow=true;scene.add(mesh);return mesh;
 }
-flatRect(600,900,-650,-0,.0,seaMat); // sea ends at x=-350
-flatRect(45,680,-327,0,.015,shallowMat);
-flatRect(22,640,-294,0,.03,sand);
+// Continuous grassland floor.
+plane(720,600,0,-0.8,0,grassMat);
 
-// Gentle grassy coastal dunes; small smooth mounds, not large mountain-like blobs.
-for(let i=0;i<13;i++){
- const z=-285+i*47;
- const dune=new THREE.Mesh(new THREE.SphereGeometry(17,16,10),material(i%2?0x83a567:0x8eaa70));
- dune.scale.set(1.7,.12,1.0);dune.position.set(-265+Math.sin(i*1.4)*9,1,z);
- scene.add(dune);
+// Sea, shallows and beach occupy a broad coastal strip within the playable boundary.
+plane(210,600,-255,-0.15,-.12,seaMat);
+plane(36,600,-132,-.05,-.02,shallowMat);
+plane(27,600,-100,-.01,.015,sandMat);
+// A low uneven dune/shore berm, never a wall between sea and land.
+for(let i=0;i<18;i++){
+ const z=-280+i*33;
+ const dune=new THREE.Mesh(new THREE.SphereGeometry(12,14,8),grassAlt);
+ dune.scale.set(1.55,.10,.8);dune.position.set(-82+Math.sin(i*.9)*3,.12,z);scene.add(dune);
 }
 
-// Farmland blocks on the inland side, separated by visible earthen bunds.
+// Farmland plots: flat paddy fields, earth bunds and fine crop lines.
 function field(x,z,w,d,alternate=false){
- flatRect(w,d,x,z,.025,alternate?paddy2:paddy1);
- const y=.18,t=.9;
- flatRect(w,t,x,z-d/2,.11,bund);flatRect(w,t,x,z+d/2,.11,bund);
- const left=new THREE.Mesh(new THREE.BoxGeometry(t,.28,d),bund);
- left.position.set(x-w/2,.13,z);scene.add(left);
- const right=left.clone();right.position.x=x+w/2;scene.add(right);
- // Crop rows are fine lines rather than raised solid strips.
- const rowMat=material(alternate?0x657d3c:0x718a43);
- for(let i=1;i<9;i++){
-  const row=new THREE.Mesh(new THREE.BoxGeometry(w-5,.018,.22),rowMat);
-  row.position.set(x,.065,z-d/2+i*d/9);scene.add(row);
+ plane(w,d,x,z,.035,alternate?fieldB:fieldA);
+ const t=1.1;
+ const top=new THREE.Mesh(new THREE.BoxGeometry(w,.32,t),bundMat);
+ top.position.set(x,.16,z-d/2);top.castShadow=true;scene.add(top);
+ const bottom=top.clone();bottom.position.z=z+d/2;scene.add(bottom);
+ for(const side of [-1,1]){
+  const edge=new THREE.Mesh(new THREE.BoxGeometry(t,.32,d),bundMat);
+  edge.position.set(x+side*w/2,.16,z);scene.add(edge);
+ }
+ const rows=10, rowMat=mat(alternate?0x637b3e:0x718845);
+ for(let i=1;i<rows;i++){
+  const row=new THREE.Mesh(new THREE.BoxGeometry(w-5,.025,.24),rowMat);
+  row.position.set(x,.065,z-d/2+i*d/rows);scene.add(row);
  }
 }
-field(-105,-205,155,105,false);
-field(85,-205,150,105,true);
-field(-100,-65,155,105,true);
-field(90,-65,150,105,false);
-field(-90,95,175,115,false);
-field(105,100,160,115,true);
-field(-80,255,165,90,true);
-field(105,255,160,90,false);
+field(15,-220,130,95,false);field(175,-220,130,95,true);
+field(10,-85,140,100,true);field(175,-85,140,100,false);
+field(15,65,145,100,false);field(185,65,130,100,true);
+field(15,215,145,95,true);field(185,215,130,95,false);
 
-// Low, distant Western Ghats ridge along the eastern horizon.
-// Peaks are individually spaced and modest; no giant overlapping spheres.
-function peak(x,z,r,h,idx){
- const geo=new THREE.ConeGeometry(r,h,7,2);
- const mesh=new THREE.Mesh(geo,mountainMats[idx%mountainMats.length]);
- mesh.position.set(x,h/2-1,z);
- mesh.rotation.y=idx*.73;
- mesh.castShadow=true;mesh.receiveShadow=true;scene.add(mesh);
- // foothill is a low wide mound, kept much smaller than the peak.
- const foot=new THREE.Mesh(new THREE.SphereGeometry(r*.9,14,8),mountainMats[(idx+1)%mountainMats.length]);
- foot.scale.set(1.5,.20,1.0);foot.position.set(x,.1,z);scene.add(foot);
+// Western Ghats-inspired distant ridge: long, overlapping rolling hills rather than spikes.
+const hillMats=[mat(0x71866d),mat(0x657d68),mat(0x849477),mat(0x5d745f)];
+function hill(x,z,w,h,d,index){
+ const m=new THREE.Mesh(new THREE.SphereGeometry(1,20,14),hillMats[index%hillMats.length]);
+ m.scale.set(w/2,h/2,d/2);m.position.set(x,h/2-1,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);
 }
 const ridge=[
- [270,-310,38,76],[340,-275,48,105],[285,-205,34,70],[365,-145,48,112],
- [285,-70,40,85],[350,5,52,118],[280,85,38,78],[365,155,50,110],
- [285,230,40,88],[345,300,46,100]
+ [385,-285,150,92,125,0],[425,-190,180,125,150,1],[385,-80,150,100,130,2],
+ [435,35,190,145,155,0],[385,155,160,112,140,3],[430,270,190,135,145,1],
+ [330,-310,120,75,110,2],[340,285,130,90,110,0]
 ];
-ridge.forEach((p,i)=>peak(...p,i));
+ridge.forEach(a=>hill(...a));
 
-// A clear continuous compound wall around the playable area.
-// The coast, farms and foothills all sit INSIDE this perimeter.
-const B={left:-365,right:390,north:-325,south:325};
+// A continuous compound wall defines the playable area's perimeter.
+// Gate opening on the south edge is intentional: a 28-unit entrance for later road connection.
 function wallSegment(x1,z1,x2,z2){
  const dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz),angle=Math.atan2(dx,dz);
- const body=new THREE.Mesh(new THREE.BoxGeometry(3.2,5.2,len+1),wallMat);
- body.position.set((x1+x2)/2,2.45,(z1+z2)/2);
- body.rotation.y=angle;body.castShadow=true;body.receiveShadow=true;scene.add(body);
- const coping=new THREE.Mesh(new THREE.BoxGeometry(3.7,.38,len+1.2),wallTop);
- coping.position.set((x1+x2)/2,5.15,(z1+z2)/2);
- coping.rotation.y=angle;scene.add(coping);
+ const body=new THREE.Mesh(new THREE.BoxGeometry(2.4,4.4,len+1),wallMat);
+ body.position.set((x1+x2)/2,2.05,(z1+z2)/2);body.rotation.y=angle;
+ body.castShadow=true;body.receiveShadow=true;scene.add(body);
+ const cap=new THREE.Mesh(new THREE.BoxGeometry(2.8,.3,len+1.2),wallCap);
+ cap.position.set((x1+x2)/2,4.4,(z1+z2)/2);cap.rotation.y=angle;scene.add(cap);
 }
-wallSegment(B.left,B.north,B.right,B.north);
-wallSegment(B.right,B.north,B.right,B.south);
-wallSegment(B.right,B.south,B.left,B.south);
-wallSegment(B.left,B.south,B.left,B.north);
-for(const [x,z] of [[B.left,B.north],[B.right,B.north],[B.right,B.south],[B.left,B.south]]){
- const pier=new THREE.Mesh(new THREE.BoxGeometry(5,5.8,5),wallTop);
- pier.position.set(x,2.65,z);pier.castShadow=true;scene.add(pier);
+wallSegment(B.minX,B.minZ,B.maxX,B.minZ);
+wallSegment(B.maxX,B.minZ,B.maxX,B.maxZ);
+wallSegment(B.maxX,B.maxZ,14,B.maxZ);
+wallSegment(-14,B.maxZ,B.minX,B.maxZ);
+wallSegment(B.minX,B.maxZ,B.minX,B.minZ);
+for(const [x,z] of [[B.minX,B.minZ],[B.maxX,B.minZ],[B.maxX,B.maxZ],[B.minX,B.maxZ]]){
+ const pier=new THREE.Mesh(new THREE.BoxGeometry(4.5,4.9,4.5),wallCap);
+ pier.position.set(x,2.25,z);pier.castShadow=true;scene.add(pier);
 }
 
-// Simple coastal palms to communicate the Kerala setting.
-const trunkMat=material(0x795333),leafMat=material(0x347b43);
-function palm(x,z,h=13){
- const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.35,.55,h,8),trunkMat);
- trunk.position.set(x,h/2,z);trunk.castShadow=true;scene.add(trunk);
- for(let i=0;i<8;i++){
-  const a=i*Math.PI/4;
-  const leaf=new THREE.Mesh(new THREE.ConeGeometry(.8,h*.36,5),leafMat);
-  leaf.position.set(x+Math.cos(a)*h*.20,h-1.1,z+Math.sin(a)*h*.20);
-  leaf.rotation.z=Math.PI/2.5;leaf.rotation.y=-a;
-  leaf.scale.set(.35,1,.55);scene.add(leaf);
+// Coastal palms with simple curved fronds.
+function palm(x,z,h=12){
+ const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.28,.48,h,8),trunkMat);
+ trunk.position.set(x,h/2,z);trunk.rotation.z=-.07;trunk.castShadow=true;scene.add(trunk);
+ for(let i=0;i<9;i++){
+  const a=i*Math.PI*2/9;
+  const frond=new THREE.Mesh(new THREE.ConeGeometry(.75,h*.34,5),leafMat);
+  frond.position.set(x+Math.cos(a)*h*.2,h-1,z+Math.sin(a)*h*.2);
+  frond.rotation.z=Math.PI/2.35;frond.rotation.y=-a;frond.scale.set(.35,1,.55);scene.add(frond);
  }
 }
-[[-280,-270],[-275,-165],[-280,-45],[-275,85],[-280,210],[-245,300]].forEach(([x,z],i)=>palm(x,z,12+i%3));
+[[-113,-250],[-115,-165],[-110,-65],[-112,45],[-110,160],[-112,255]].forEach(([x,z],i)=>palm(x,z,11+i%3));
 
-function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera)}
-animate();
+// Player vehicle: simple compact hatchback placeholder for scale and driving tests.
+const car=new THREE.Group();scene.add(car);
+const bodyMat=mat(0xc5cec9,.5),glassMat=new THREE.MeshStandardMaterial({color:0x263f45,roughness:.25,metalness:.1}),tyreMat=mat(0x171a1a);
+function cube(parent,x,y,z,w,h,d,material){
+ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;
+}
+cube(car,0,.66,0,1.8,.72,3.45,bodyMat);
+cube(car,0,1.23,-.18,1.52,.65,1.85,bodyMat);
+cube(car,0,1.25,-1.12,1.38,.48,.04,glassMat);
+cube(car,0,1.25,.77,1.38,.48,.04,glassMat);
+for(const side of [-1,1]){
+ cube(car,side*.77,1.22,-.18,.04,.43,1.5,glassMat);
+ for(const z of [-1.08,1.08]){
+  const tyre=new THREE.Mesh(new THREE.CylinderGeometry(.34,.34,.2,18),tyreMat);
+  tyre.rotation.z=Math.PI/2;tyre.position.set(side*.91,.36,z);tyre.castShadow=true;car.add(tyre);
+ }
+ cube(car,side*.56,.78,1.75,.24,.15,.04,mat(0xffe8b5));
+ cube(car,side*.56,.78,-1.75,.24,.15,.04,mat(0xb32320));
+}
+cube(car,0,.39,1.75,1.25,.16,.08,wallCap);
+
+const keys={};addEventListener('keydown',e=>{keys[e.code]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();if(e.code==='KeyR')reset()});
+addEventListener('keyup',e=>keys[e.code]=false);
+let speed=0,heading=0;
+const player={x:0,z:30};
+function reset(){player.x=0;player.z=30;speed=0;heading=0}
+const cameraOffset=new THREE.Vector3(0,5.4,-10.5);
+const desired=new THREE.Vector3(),look=new THREE.Vector3();
+let previous=performance.now();
+function update(dt){
+ const forward=keys.KeyW||keys.ArrowUp,back=keys.KeyS||keys.ArrowDown;
+ const steer=(keys.KeyA||keys.ArrowLeft?1:0)-(keys.KeyD||keys.ArrowRight?1:0);
+ if(forward)speed=Math.min(speed+22*dt,34);
+ else if(back)speed=Math.max(speed-34*dt,-10);
+ else speed*=Math.pow(.985,dt*60);
+ if(keys.Space)speed*=Math.pow(.90,dt*60);
+ heading+=steer*Math.sign(speed||1)*Math.min(Math.abs(speed)/16,1)*1.55*dt;
+ const nx=player.x+Math.sin(heading)*speed*dt;
+ const nz=player.z+Math.cos(heading)*speed*dt;
+ const radius=8;
+ if(nx>B.minX+radius&&nx<B.maxX-radius&&nz>B.minZ+radius&&nz<B.maxZ-radius){
+  player.x=nx;player.z=nz;
+ }else{speed=0}
+ car.position.set(player.x,0,player.z);car.rotation.y=heading;
+ const kmh=Math.round(Math.abs(speed)*3.6);
+ document.querySelector('#speed').textContent=kmh;
+ document.querySelector('#gear').textContent=speed<-.5?'REVERSE':kmh>0?'DRIVE':'READY';
+ desired.set(player.x,0,player.z).add(new THREE.Vector3(cameraOffset.x, cameraOffset.y,cameraOffset.z).applyAxisAngle(new THREE.Vector3(0,1,0),heading));
+ camera.position.lerp(desired,.075);
+ look.set(player.x,1.0,player.z);camera.lookAt(look);
+}
+function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-previous)/1000,.04);previous=now;update(dt);renderer.render(scene,camera)}
+requestAnimationFrame(animate);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 </script></body></html>
