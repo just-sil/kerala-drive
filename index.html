@@ -172,15 +172,13 @@ addJunction(-16,-185,{x:1,z:.18},{x:1,z:.35},4.4,3.4,8.0,8.0);
 
 
 
-// Continuous junction infills: small square asphalt patches bridge ribbon seams
-// where independently generated road strips meet. Kept compact to avoid round plazas.
-function junctionInfll(x,z,size=12){
- const mesh=new THREE.Mesh(new THREE.PlaneGeometry(size,size),new THREE.MeshStandardMaterial({
-  color:0xffffff,map:asphaltTex,roughness:.96,side:THREE.DoubleSide
- }));
- mesh.rotation.x=-Math.PI/2;mesh.position.set(x,.043,z);mesh.receiveShadow=true;scene.add(mesh);
+// Rounded asphalt junction pads blend the independently-built road ribbons.
+function junctionPad(x,z,r=5.4){
+ const pad=new THREE.Mesh(new THREE.CircleGeometry(r,48),road);
+ pad.rotation.x=-Math.PI/2;pad.position.set(x,.032,z);pad.receiveShadow=true;scene.add(pad);
 }
-[[-4,-48,12],[-68,-54,11],[0,-15,12],[8,42,12],[20,185,11],[-16,-185,11]].forEach(([x,z,s])=>junctionInfll(x,z,s));
+[[-4,-48,5.5],[-68,-54,5.2],[0,-15,5.5],[8,42,5.5],[20,185,5.0],[-16,-185,5.0]]
+ .forEach(([x,z,r])=>junctionPad(x,z,r));
 
 // Explicit road graph: junction nodes and connected road segments.
 // Traffic routing can use these stable node/edge identifiers in the next phase.
@@ -556,18 +554,30 @@ for(const side of [-1,1]){
 box(playerCar,0,.34,1.58,1.15,.12,.08,trimMat);
 box(playerCar,0,.34,-1.58,1.15,.12,.08,trimMat);
 
+
+// Front/rear details and door glazing on the exterior player hatchback.
+box(playerCar,0,.62,1.585,1.20,.20,.045,pBody);
+box(playerCar,0,.73,1.615,.72,.10,.025,trimMat);
+for(const side of [-1,1]){
+ box(playerCar,side*.53,.84,1.635,.22,.13,.025,pLamp);
+ box(playerCar,side*.53,.84,-1.635,.22,.13,.025,pTail);
+ box(playerCar,side*.755,1.22,.62,.025,.42,.62,pGlass);
+ box(playerCar,side*.755,1.22,-.55,.025,.42,.62,pGlass);
+ box(playerCar,side*.77,1.22,.02,.045,.045,.10,trimMat);
+}
+
 // First-person cockpit stays attached to the camera; third-person hides it.
 camera.position.set(0,1.48,0);camera.rotation.order='YXZ';camera.add(cockpit);scene.add(camera);
 let thirdPerson=false;
 function setView(value){thirdPerson=value;cockpit.visible=!thirdPerson;playerCar.visible=thirdPerson;
  document.querySelector('#viewbtn').textContent=thirdPerson?'FIRST PERSON · V':'THIRD PERSON · V';updateCamera()}
 function updateCamera(){
- playerCar.position.set(car.x,0,car.z);playerCar.rotation.y=car.yaw+Math.PI;
+ playerCar.position.set(car.x,0,car.z);playerCar.rotation.y=car.yaw;playerCar.visible=thirdPerson;
  wheel.rotation.z=-steer*.48;
  if(thirdPerson){
-  const back=8.2,height=4.0;
+  const back=7.0,height=3.15;
   camera.position.set(car.x-Math.sin(car.yaw)*back,height,car.z-Math.cos(car.yaw)*back);
-  camera.lookAt(car.x,1.0,car.z);
+  camera.lookAt(car.x,1.05,car.z+Math.cos(car.yaw)*2.0);
  }else{
   camera.position.set(car.x,1.62,car.z);
   camera.rotation.order='YXZ';camera.rotation.y=car.yaw+Math.PI;camera.rotation.x=-.035;camera.rotation.z=0;
