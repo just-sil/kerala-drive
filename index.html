@@ -10,31 +10,151 @@
 <script type="module">
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-const scene=new THREE.Scene();scene.background=new THREE.Color(0xa9cbd0);scene.fog=new THREE.Fog(0xa9cbd0,520,1150);
-const camera=new THREE.PerspectiveCamera(48,innerWidth/innerHeight,.1,1800);camera.position.set(520,410,570);
-const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.8));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;document.querySelector('#view').appendChild(renderer.domElement);
-const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,18,0);controls.enableDamping=true;controls.dampingFactor=.06;controls.maxPolarAngle=Math.PI*.48;controls.minDistance=180;controls.maxDistance=1050;
-scene.add(new THREE.HemisphereLight(0xe4f4f1,0x65745b,2));const sun=new THREE.DirectionalLight(0xfff0d7,2.5);sun.position.set(-260,430,180);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-520;sun.shadow.camera.right=520;sun.shadow.camera.top=520;sun.shadow.camera.bottom=-520;scene.add(sun);
-const mat=(c,r=.9,m=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});
-const land=mat(0x7f9d61),grassMat=mat(0x729653),sand=mat(0xd8c28e),farm=mat(0x8b9850),farm2=mat(0x9ca45b),wall=mat(0xc8c2ad),cap=mat(0x888477),rock=mat(0x687b68),rock2=mat(0x526957),rock3=mat(0x829178);
-const ground=new THREE.Mesh(new THREE.PlaneGeometry(900,720),land);ground.rotation.x=-Math.PI/2;ground.position.y=-1;ground.receiveShadow=true;scene.add(ground);
-const sea=new THREE.Mesh(new THREE.PlaneGeometry(900,1250),new THREE.MeshStandardMaterial({color:0x287f91,roughness:.32,metalness:.08}));sea.rotation.x=-Math.PI/2;sea.position.set(-620,-.9,0);scene.add(sea);
-const shallow=new THREE.Mesh(new THREE.PlaneGeometry(170,760),mat(0x62a6a5,.55));shallow.rotation.x=-Math.PI/2;shallow.position.set(-420,-.55,0);scene.add(shallow);
-function shoreX(z){return -335+22*Math.sin(z/88)+12*Math.sin(z/37)}
-const points=[];for(let i=0;i<=80;i++){let z=-360+i*9;points.push(new THREE.Vector3(shoreX(z),.2,z))}
-const curve=new THREE.CatmullRomCurve3(points),pts=curve.getPoints(220),verts=[],idx=[];
-for(let i=0;i<pts.length;i++){let p=pts[i],t=curve.getTangent(i/(pts.length-1)),nx=-t.z,nz=t.x;verts.push(p.x+nx*4,.05,p.z+nz*4,p.x+nx*78,.05,p.z+nz*78);if(i<pts.length-1){let a=i*2;idx.push(a,a+1,a+2,a+1,a+3,a+2)}}
-const bg=new THREE.BufferGeometry();bg.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));bg.setIndex(idx);bg.computeVertexNormals();const beach=new THREE.Mesh(bg,sand);beach.material.side=THREE.DoubleSide;scene.add(beach);
-const grass=new THREE.Mesh(new THREE.PlaneGeometry(690,720,90,90),grassMat);grass.rotation.x=-Math.PI/2;grass.position.set(30,.02,0);grass.receiveShadow=true;const p=grass.geometry.attributes.position;for(let i=0;i<p.count;i++){let x=p.getX(i)+30,z=p.getY(i);p.setZ(i,1.8*Math.sin(x*.018)*Math.cos(z*.014)+Math.sin((x+z)*.025))}grass.geometry.computeVertexNormals();scene.add(grass);
-function farmPlot(x,z,w,d,alt=false){const plot=new THREE.Mesh(new THREE.BoxGeometry(w,.16,d),alt?farm2:farm);plot.position.set(x,.12,z);scene.add(plot);const bund=mat(0xaaa276);for(const [px,pz,pw,pd] of [[x,z-d/2,w,.8],[x,z+d/2,w,.8],[x-w/2,z,.8,d],[x+w/2,z,.8,d]]){let b=new THREE.Mesh(new THREE.BoxGeometry(pw,.42,pd),bund);b.position.set(px,.26,pz);b.castShadow=true;scene.add(b)}for(let i=1;i<Math.max(3,Math.floor(d/9));i++){let row=new THREE.Mesh(new THREE.BoxGeometry(w-3,.035,.32),mat(alt?0x647b3d:0x5e793b));row.position.set(x,.22,z-d/2+i*d/Math.max(3,Math.floor(d/9)));scene.add(row)}}
-[[90,-235,170,105,0],[285,-235,135,105,1],[90,-95,170,100,1],[285,-95,135,100,0],[105,75,190,110,0],[315,85,150,120,1],[120,245,190,105,1],[325,245,145,105,0]].forEach(a=>farmPlot(...a.slice(0,4),!!a[4]));
-function mountainRange(bx,bz,n,s,material,seed){for(let i=0;i<n;i++){let x=bx+(i-(n-1)/2)*s*.72,z=bz+Math.sin(i*1.7+seed)*s*.45,h=s*(.42+((i*37+seed*13)%41)/100),r=s*(.34+((i*19+seed)%22)/100);let m=new THREE.Mesh(new THREE.ConeGeometry(r,h,7,3),material);m.position.set(x,h/2-1,z);m.rotation.y=i*.83;m.scale.set(1.15,1,.85);m.castShadow=true;scene.add(m);let hill=new THREE.Mesh(new THREE.SphereGeometry(r*1.2,12,8),rock);hill.scale.y=.42;hill.position.set(x,.2,z);scene.add(hill)}}
-mountainRange(530,-240,9,170,rock2,4);mountainRange(570,10,10,205,rock,8);mountainRange(535,260,9,175,rock3,12);mountainRange(680,0,13,255,rock2,20);
-// Continuous compound wall enclosing the entire playable land block.
-function wallSegment(x1,z1,x2,z2){let dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz),a=Math.atan2(dx,dz);let b=new THREE.Mesh(new THREE.BoxGeometry(2.8,5.5,len+1),wall);b.position.set((x1+x2)/2,2.65,(z1+z2)/2);b.rotation.y=a;b.castShadow=true;b.receiveShadow=true;scene.add(b);let c=new THREE.Mesh(new THREE.BoxGeometry(3.25,.42,len+1.2),cap);c.position.set((x1+x2)/2,5.55,(z1+z2)/2);c.rotation.y=a;scene.add(c)}
-const W={l:-390,r:390,n:-315,s:315};wallSegment(W.l,W.n,W.r,W.n);wallSegment(W.r,W.n,W.r,W.s);wallSegment(W.r,W.s,W.l,W.s);wallSegment(W.l,W.s,W.l,W.n);
-for(const [x,z] of [[W.l,W.n],[W.r,W.n],[W.r,W.s],[W.l,W.s]]){let q=new THREE.Mesh(new THREE.BoxGeometry(5.5,6.2,5.5),cap);q.position.set(x,2.9,z);q.castShadow=true;scene.add(q)}
-function palm(x,z,h=14){let trunk=new THREE.Mesh(new THREE.CylinderGeometry(.42,.72,h,7),mat(0x795333));trunk.position.set(x,h/2,z);trunk.castShadow=true;scene.add(trunk);for(let i=0;i<9;i++){let a=i*Math.PI*2/9,leaf=new THREE.Mesh(new THREE.ConeGeometry(1.15,h*.42,5),mat(i%2?0x286b3c:0x347b43));leaf.position.set(x+Math.cos(a)*h*.23,h-1.2,z+Math.sin(a)*h*.23);leaf.rotation.z=Math.PI/2.4;leaf.rotation.y=-a;leaf.scale.set(.42,1,.65);scene.add(leaf)}}
-[[-300,-260],[-285,-150],[-310,-25],[-290,110],[-305,250],[-230,-310],[-225,300]].forEach(([x,z],i)=>palm(x,z,13+i%4));
-function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera)}animate();addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0xb8d5d5);
+scene.fog=new THREE.Fog(0xb8d5d5,900,1800);
+
+const camera=new THREE.PerspectiveCamera(48,innerWidth/innerHeight,.1,2500);
+camera.position.set(780,690,850);
+
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.0;
+document.querySelector('#view').appendChild(renderer.domElement);
+
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.target.set(0,0,0);
+controls.enableDamping=true;
+controls.dampingFactor=.055;
+controls.maxPolarAngle=Math.PI*.48;
+controls.minDistance=250;
+controls.maxDistance=1600;
+
+scene.add(new THREE.HemisphereLight(0xe8f5f1,0x6b7959,1.8));
+const sun=new THREE.DirectionalLight(0xffefcf,2.1);
+sun.position.set(-300,650,250);
+sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.left=-650;sun.shadow.camera.right=650;
+sun.shadow.camera.top=650;sun.shadow.camera.bottom=-650;
+scene.add(sun);
+
+const material=(color,roughness=.95)=>new THREE.MeshStandardMaterial({color,roughness});
+const grass=material(0x789d59),seaMat=material(0x287f98,.38),shallowMat=material(0x62adb0,.55);
+const sand=material(0xd9c79a),paddy1=material(0x9eaa60),paddy2=material(0x82964d);
+const bund=material(0xb5a77d),wallMat=material(0xc8c2ad),wallTop=material(0x817e72);
+const mountainMats=[material(0x667e69),material(0x748a70),material(0x596f60),material(0x829178)];
+
+// Main land: one continuous, flat terrain slab.
+const land=new THREE.Mesh(new THREE.PlaneGeometry(760,640),grass);
+land.rotation.x=-Math.PI/2;
+land.position.set(40,-1,0);
+land.receiveShadow=true;
+scene.add(land);
+
+// Arabian Sea to the west, with distinct shallow water and a narrow sandy shore.
+function flatRect(w,d,x,z,y,mat){
+ const m=new THREE.Mesh(new THREE.PlaneGeometry(w,d),mat);
+ m.rotation.x=-Math.PI/2;m.position.set(x,y,z);m.receiveShadow=true;scene.add(m);return m;
+}
+flatRect(600,900,-650,-0,.0,seaMat); // sea ends at x=-350
+flatRect(45,680,-327,0,.015,shallowMat);
+flatRect(22,640,-294,0,.03,sand);
+
+// Gentle grassy coastal dunes; small smooth mounds, not large mountain-like blobs.
+for(let i=0;i<13;i++){
+ const z=-285+i*47;
+ const dune=new THREE.Mesh(new THREE.SphereGeometry(17,16,10),material(i%2?0x83a567:0x8eaa70));
+ dune.scale.set(1.7,.12,1.0);dune.position.set(-265+Math.sin(i*1.4)*9,1,z);
+ scene.add(dune);
+}
+
+// Farmland blocks on the inland side, separated by visible earthen bunds.
+function field(x,z,w,d,alternate=false){
+ flatRect(w,d,x,z,.025,alternate?paddy2:paddy1);
+ const y=.18,t=.9;
+ flatRect(w,t,x,z-d/2,.11,bund);flatRect(w,t,x,z+d/2,.11,bund);
+ const left=new THREE.Mesh(new THREE.BoxGeometry(t,.28,d),bund);
+ left.position.set(x-w/2,.13,z);scene.add(left);
+ const right=left.clone();right.position.x=x+w/2;scene.add(right);
+ // Crop rows are fine lines rather than raised solid strips.
+ const rowMat=material(alternate?0x657d3c:0x718a43);
+ for(let i=1;i<9;i++){
+  const row=new THREE.Mesh(new THREE.BoxGeometry(w-5,.018,.22),rowMat);
+  row.position.set(x,.065,z-d/2+i*d/9);scene.add(row);
+ }
+}
+field(-105,-205,155,105,false);
+field(85,-205,150,105,true);
+field(-100,-65,155,105,true);
+field(90,-65,150,105,false);
+field(-90,95,175,115,false);
+field(105,100,160,115,true);
+field(-80,255,165,90,true);
+field(105,255,160,90,false);
+
+// Low, distant Western Ghats ridge along the eastern horizon.
+// Peaks are individually spaced and modest; no giant overlapping spheres.
+function peak(x,z,r,h,idx){
+ const geo=new THREE.ConeGeometry(r,h,7,2);
+ const mesh=new THREE.Mesh(geo,mountainMats[idx%mountainMats.length]);
+ mesh.position.set(x,h/2-1,z);
+ mesh.rotation.y=idx*.73;
+ mesh.castShadow=true;mesh.receiveShadow=true;scene.add(mesh);
+ // foothill is a low wide mound, kept much smaller than the peak.
+ const foot=new THREE.Mesh(new THREE.SphereGeometry(r*.9,14,8),mountainMats[(idx+1)%mountainMats.length]);
+ foot.scale.set(1.5,.20,1.0);foot.position.set(x,.1,z);scene.add(foot);
+}
+const ridge=[
+ [270,-310,38,76],[340,-275,48,105],[285,-205,34,70],[365,-145,48,112],
+ [285,-70,40,85],[350,5,52,118],[280,85,38,78],[365,155,50,110],
+ [285,230,40,88],[345,300,46,100]
+];
+ridge.forEach((p,i)=>peak(...p,i));
+
+// A clear continuous compound wall around the playable area.
+// The coast, farms and foothills all sit INSIDE this perimeter.
+const B={left:-365,right:390,north:-325,south:325};
+function wallSegment(x1,z1,x2,z2){
+ const dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz),angle=Math.atan2(dx,dz);
+ const body=new THREE.Mesh(new THREE.BoxGeometry(3.2,5.2,len+1),wallMat);
+ body.position.set((x1+x2)/2,2.45,(z1+z2)/2);
+ body.rotation.y=angle;body.castShadow=true;body.receiveShadow=true;scene.add(body);
+ const coping=new THREE.Mesh(new THREE.BoxGeometry(3.7,.38,len+1.2),wallTop);
+ coping.position.set((x1+x2)/2,5.15,(z1+z2)/2);
+ coping.rotation.y=angle;scene.add(coping);
+}
+wallSegment(B.left,B.north,B.right,B.north);
+wallSegment(B.right,B.north,B.right,B.south);
+wallSegment(B.right,B.south,B.left,B.south);
+wallSegment(B.left,B.south,B.left,B.north);
+for(const [x,z] of [[B.left,B.north],[B.right,B.north],[B.right,B.south],[B.left,B.south]]){
+ const pier=new THREE.Mesh(new THREE.BoxGeometry(5,5.8,5),wallTop);
+ pier.position.set(x,2.65,z);pier.castShadow=true;scene.add(pier);
+}
+
+// Simple coastal palms to communicate the Kerala setting.
+const trunkMat=material(0x795333),leafMat=material(0x347b43);
+function palm(x,z,h=13){
+ const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.35,.55,h,8),trunkMat);
+ trunk.position.set(x,h/2,z);trunk.castShadow=true;scene.add(trunk);
+ for(let i=0;i<8;i++){
+  const a=i*Math.PI/4;
+  const leaf=new THREE.Mesh(new THREE.ConeGeometry(.8,h*.36,5),leafMat);
+  leaf.position.set(x+Math.cos(a)*h*.20,h-1.1,z+Math.sin(a)*h*.20);
+  leaf.rotation.z=Math.PI/2.5;leaf.rotation.y=-a;
+  leaf.scale.set(.35,1,.55);scene.add(leaf);
+ }
+}
+[[-280,-270],[-275,-165],[-280,-45],[-275,85],[-280,210],[-245,300]].forEach(([x,z],i)=>palm(x,z,12+i%3));
+
+function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera)}
+animate();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 </script></body></html>
