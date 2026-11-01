@@ -11,7 +11,6 @@
 .pill{background:#101820c9;border:1px solid #ffffff35;border-radius:12px;padding:9px 13px;backdrop-filter:blur(8px)}
 #brand{position:absolute;top:18px;left:18px;font-weight:900;letter-spacing:.16em;font-size:13px;padding:11px 16px}
 #location{position:absolute;top:18px;right:18px;text-align:right;font-size:12px;line-height:1.6;padding:11px 16px}
-#viewbtn{font:700 11px Inter,system-ui,sans-serif;letter-spacing:.06em}
 #speedbox{position:absolute;right:22px;bottom:22px;width:124px;height:124px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 25%,#263d43ee,#091216f5);border:2px solid #b9d6c9;box-shadow:0 8px 30px #0008,inset 0 0 0 5px #ffffff12}
 #speed{font-size:34px;font-weight:800;line-height:1}#unit{font-size:10px;letter-spacing:.15em;text-align:center;opacity:.8}
 #gear{position:absolute;left:18px;bottom:18px;font-size:13px;line-height:1.6}
@@ -31,7 +30,6 @@ button{background:#e5f0e8;color:#14221c;border:0;border-radius:11px;padding:13px
 <div id="hud">
  <div id="brand" class="pill">KERALA DRIVE <span style="color:#a7d9b4">1.3</span></div>
  <div id="location" class="pill">MALAPPURAM • TIRUR INSPIRED<br><span id="roadname">TIRUR TOWN ROAD</span></div>
- <button id="viewbtn" class="pill" style="position:absolute;top:82px;right:18px;pointer-events:auto;color:white;background:#101820d9;border:1px solid #ffffff45;padding:9px 13px">THIRD PERSON · V</button>
  <div id="gear" class="pill">GEAR <b id="gearval">D</b><br>ENGINE <b>RUNNING</b><br>TRAFFIC <b id="trafficcount">0</b></div>
  <div id="hint" class="pill">WASD / ARROWS TO DRIVE · SPACE BRAKE · R RESET</div>
  <div id="speedbox"><div><div id="speed">0</div><div id="unit">KM/H</div></div></div>
@@ -171,16 +169,6 @@ addJunction(20,185,{x:1,z:.22},{x:1,z:.3},4.4,3.4,8.0,8.0);
 addJunction(-16,-185,{x:1,z:.18},{x:1,z:.35},4.4,3.4,8.0,8.0);
 
 
-
-// Continuous junction infills: small square asphalt patches bridge ribbon seams
-// where independently generated road strips meet. Kept compact to avoid round plazas.
-function junctionInfll(x,z,size=12){
- const mesh=new THREE.Mesh(new THREE.PlaneGeometry(size,size),new THREE.MeshStandardMaterial({
-  color:0xffffff,map:asphaltTex,roughness:.96,side:THREE.DoubleSide
- }));
- mesh.rotation.x=-Math.PI/2;mesh.position.set(x,.043,z);mesh.receiveShadow=true;scene.add(mesh);
-}
-[[-4,-48,12],[-68,-54,11],[0,-15,12],[8,42,12],[20,185,11],[-16,-185,11]].forEach(([x,z,s])=>junctionInfll(x,z,s));
 
 // Explicit road graph: junction nodes and connected road segments.
 // Traffic routing can use these stable node/edge identifiers in the next phase.
@@ -537,42 +525,9 @@ for(let i=0;i<2;i++){
  const pedal=box(cockpit,-.63+i*.17,-.91,-1.28,.09,.025,.075,metal);
  pedal.rotation.x=-.20;
 }
-// Player WagonR proxy model for the exterior camera.
-const playerCar=new THREE.Group();scene.add(playerCar);
-const pBody=mat(0xb8c2bd,.48,.12),pGlass=new THREE.MeshStandardMaterial({color:0x29434a,roughness:.22,metalness:.18}),pTyre=mat(0x151819,.95),pLamp=mat(0xffe7b0,.35),pTail=mat(0xb51f1b,.4);
-box(playerCar,0,.66,0,1.72,.72,3.12,pBody);
-box(playerCar,0,1.24,-.18,1.48,.68,1.72,pBody);
-box(playerCar,0,1.24,.72,1.42,.56,.045,pGlass);
-box(playerCar,0,1.24,-1.06,1.42,.56,.045,pGlass);
-for(const side of [-1,1]){
- box(playerCar,side*.75,1.22,-.16,.035,.48,1.52,pGlass);
- for(const z of [-1.02,1.03]){
-  const tyre=new THREE.Mesh(new THREE.CylinderGeometry(.34,.34,.18,16),pTyre);
-  tyre.rotation.z=Math.PI/2;tyre.position.set(side*.87,.38,z);playerCar.add(tyre);
- }
- box(playerCar,side*.79,.78,1.53,.16,.22,.08,pLamp);
- box(playerCar,side*.79,.78,-1.58,.16,.22,.08,pTail);
-}
-box(playerCar,0,.34,1.58,1.15,.12,.08,trimMat);
-box(playerCar,0,.34,-1.58,1.15,.12,.08,trimMat);
-
-// First-person cockpit stays attached to the camera; third-person hides it.
+// camera is the driver's eye, cockpit parented to it
 camera.position.set(0,1.48,0);camera.rotation.order='YXZ';camera.add(cockpit);scene.add(camera);
-let thirdPerson=false;
-function setView(value){thirdPerson=value;cockpit.visible=!thirdPerson;playerCar.visible=thirdPerson;
- document.querySelector('#viewbtn').textContent=thirdPerson?'FIRST PERSON · V':'THIRD PERSON · V';updateCamera()}
-function updateCamera(){
- playerCar.position.set(car.x,0,car.z);playerCar.rotation.y=car.yaw+Math.PI;
- wheel.rotation.z=-steer*.48;
- if(thirdPerson){
-  const back=8.2,height=4.0;
-  camera.position.set(car.x-Math.sin(car.yaw)*back,height,car.z-Math.cos(car.yaw)*back);
-  camera.lookAt(car.x,1.0,car.z);
- }else{
-  camera.position.set(car.x,1.62,car.z);
-  camera.rotation.order='YXZ';camera.rotation.y=car.yaw+Math.PI;camera.rotation.x=-.035;camera.rotation.z=0;
- }
-}
+function updateCamera(){camera.position.set(car.x,1.62,car.z);camera.rotation.y=car.yaw+Math.PI;camera.rotation.x=-.035;wheel.rotation.z=-steer*.48}
 function reset(){car.x=-13;car.z=-120;car.yaw=0;car.speed=0;steer=0;updateCamera()}
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
 function frame(){requestAnimationFrame(frame);const dt=Math.min(clock.getDelta(),.04);
@@ -595,8 +550,7 @@ function frame(){requestAnimationFrame(frame);const dt=Math.min(clock.getDelta()
  }renderer.render(scene,camera)}
 const clock=new THREE.Clock();updateCamera();frame();
 document.querySelector('#startbtn').addEventListener('click',()=>{running=true;document.querySelector('#start').style.display='none'});
-addEventListener('keydown',e=>{keys[e.code]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();if(e.code==='KeyR')reset();if(e.code==='KeyV'&&!e.repeat)setView(!thirdPerson)});
-document.querySelector('#viewbtn').addEventListener('click',()=>setView(!thirdPerson));
+addEventListener('keydown',e=>{keys[e.code]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();if(e.code==='KeyR')reset()});
 addEventListener('keyup',e=>keys[e.code]=false);
 document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key;b.addEventListener('pointerdown',e=>{e.preventDefault();keys[k]=true});['pointerup','pointercancel','pointerleave'].forEach(ev=>b.addEventListener(ev,()=>keys[k]=false))});
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
