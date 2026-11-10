@@ -7,7 +7,7 @@
   <title>Kerala Drive — Free Roam</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+Chettan+2:wght@700&family=DM+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./style.css">
   <script type="importmap">
     {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}
@@ -31,33 +31,41 @@
     <div class="place-panel">
       <div class="panel-heading"><span>CHOOSE YOUR DRIVE</span><small>01 / LOCATION</small></div>
       <div class="place-grid">
-        <button class="place-card active" data-place="malabar">
+        <button class="place-card active" type="button" data-place="malabar" aria-pressed="true">
           <span class="place-no">01</span><span class="place-name">MALABAR</span><span class="place-desc">Coastal roads · Coconut country</span><span class="place-arrow">↗</span>
         </button>
-        <button class="place-card" data-place="kochi">
+        <button class="place-card" type="button" data-place="kochi" aria-pressed="false">
           <span class="place-no">02</span><span class="place-name">KOCHI</span><span class="place-desc">City streets · Backwater bridges</span><span class="place-arrow">↗</span>
         </button>
-        <button class="place-card" data-place="wayanad">
+        <button class="place-card" type="button" data-place="wayanad" aria-pressed="false">
           <span class="place-no">03</span><span class="place-name">WAYANAD</span><span class="place-desc">Mountain bends · Tea & forest</span><span class="place-arrow">↗</span>
         </button>
       </div>
       <div class="panel-bottom"><span id="place-note">A laid-back northern Kerala coastal town.</span><button id="start-btn">START DRIVING <b>→</b></button></div>
     </div>
-    <div class="start-footer"><span>W A S D / ARROWS TO DRIVE</span><span>MADE FOR THE OPEN ROAD</span></div>
+    <div class="start-footer"><span id="drive-hint">W A S D / ARROWS TO DRIVE</span><span>MADE FOR THE OPEN ROAD</span></div>
   </section>
 
   <div id="hud" class="hidden">
     <div class="hud-top">
       <div class="hud-brand"><span class="brand-icon">K</span><span>KERALA<span class="brand-light"> DRIVE</span></span></div>
-      <div class="location-chip"><span class="live-dot"></span><span id="hud-location">MALABAR</span><span class="chip-divider">/</span><span>FREE ROAM</span></div>
+      <div class="location-chip"><span class="live-dot"></span><span id="hud-location">MALABAR</span><span class="chip-divider">/</span><span id="hud-area">FREE ROAM</span></div>
       <button id="menu-btn" class="hud-button">☰ <span>MENU</span></button>
     </div>
     <div class="hud-bottom">
-      <div class="speed-card"><div class="speed-line"><strong id="speed">000</strong><span>KM/H</span></div><div class="gear-line"><span id="gear">D</span><span id="vehicle-name">WAGON R · 1.0</span></div></div>
-      <div class="hint-card"><span class="hint-key">W A S D</span> DRIVE <i>·</i> <span class="hint-key">SPACE</span> BRAKE <i>·</i> <span class="hint-key">C</span> CAMERA</div>
-      <div class="hud-right"><div id="weather-label">CLEAR SKIES</div><div id="clock">16:42</div></div>
+      <div class="speed-card"><div class="speed-line"><strong id="speed">000</strong><span>KM/H</span></div><div class="gear-line"><span id="gear">D</span><span id="vehicle-name">WAGON R · 1.0</span><span id="trip">0.0 KM</span></div></div>
+      <div class="hint-card"><span class="hint-key">W A S D</span> DRIVE <i>·</i> <span class="hint-key">SPACE</span> BRAKE <i>·</i> <span class="hint-key">H</span> HORN <i>·</i> <span class="hint-key">C</span> CAMERA</div>
+      <div class="hud-side"><canvas id="minimap" width="300" height="300" aria-label="Map of nearby roads"></canvas><div class="hud-right"><div id="weather-label">CLEAR SKIES</div><div id="clock">16:42</div></div></div>
     </div>
-    <div class="crosshair"></div>
+  </div>
+
+  <div id="touch" class="hidden">
+    <button type="button" class="pad pad-left" data-hold="left" aria-label="Steer left">◀</button>
+    <button type="button" class="pad pad-right" data-hold="right" aria-label="Steer right">▶</button>
+    <button type="button" class="pad pad-brake" data-hold="brake" aria-label="Brake and reverse">▼</button>
+    <button type="button" class="pad pad-gas" data-hold="gas" aria-label="Accelerate">▲</button>
+    <button type="button" class="pad pad-small pad-horn" data-hold="horn">HORN</button>
+    <button type="button" class="pad pad-small pad-cam" id="touch-cam">CAM</button>
   </div>
 
   <section id="pause-screen" class="screen hidden pause-screen">
@@ -67,7 +75,8 @@
       <p class="pause-location" id="pause-location">MALABAR · FREE ROAM</p>
       <button id="resume-btn" class="primary-btn">BACK TO DRIVING →</button>
       <button id="change-place-btn" class="secondary-btn">CHANGE LOCATION</button>
-      <div class="controls-list"><span>W / ↑ <b>Accelerate</b></span><span>S / ↓ <b>Reverse</b></span><span>A D / ← → <b>Steer</b></span><span>SPACE <b>Handbrake</b></span><span>C <b>Change camera</b></span><span>R <b>Reset vehicle</b></span><span>ESC <b>Pause</b></span></div>
+      <button id="sound-btn" class="secondary-btn" aria-pressed="true">SOUND ON</button>
+      <div class="controls-list"><span>W / ↑ <b>Accelerate</b></span><span>S / ↓ <b>Brake, reverse</b></span><span>A D / ← → <b>Steer</b></span><span>SPACE <b>Handbrake</b></span><span>C <b>Change camera</b></span><span>H <b>Horn</b></span><span>T <b>Skip 3 hours</b></span><span>V <b>Change weather</b></span><span>M <b>Sound on / off</b></span><span>R <b>Back to the road</b></span><span>ESC <b>Pause</b></span></div>
     </div>
   </section>
 
